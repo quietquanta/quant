@@ -1,0 +1,59 @@
+import datetime
+import pandas as pd
+
+from yahoo_finance import Share			# Data API for Yahoo Finance
+
+def download_stock_prices(
+	tickers = [ 'AAPL' ],
+	start = datetime.date( 2010, 1, 1 ),
+	end = datetime.date( 2015, 12, 31 ),
+	csv_file = "stock_price_test.csv",
+):
+	# Check validity of inputs
+	if len( tickers ) <= 0:
+		print "Tickers must not be empty";
+		return False;
+	if start > end:
+		print "Start date " + start.isoformat() + " can't be later than End date " + end.isoformat();
+
+	df_arr = [];	# list of DataFrame: each DataFrame is for a stock
+	min_date = start;
+
+	for _i in range( len(tickers) ):
+		ticker = tickers[_i];
+		print "Index" + str(_i) + "\t" + "Ticker: " + ticker;
+
+		stock = Share( ticker );
+
+		start_str = start.isoformat();
+		end_str = end.isoformat();
+		hist = stock.get_historical( start_str, end_str );
+
+		# Create DataFrame, and set index to Date	
+		df = pd.DataFrame( hist );
+
+		# Data Cleaning
+		df['Date'] = df['Date'].apply( \
+					lambda x: datetime.datetime.strptime(x, "%Y-%m-%d" ).date() );	# Change date in string to datetime object
+
+		# Set Index and then sort by index
+		df.set_index( "Date", inplace=True );
+		df.sort_index( ascending=True, inplace=True);
+
+		# update minimum date
+		min_date = min( [min_date, df.index.min()] );
+
+		df_arr.append( df );
+
+	print "First date for stock price is " + min_date.isoformat();
+	for df in df_arr:
+		df = df.loc[ df.index >= min_date ];	# select the common time horizon
+
+	data = pd.concat( df_arr );
+	data.to_csv( csv_file );
+
+	return True;
+
+
+if __name__ == "__main__":
+	
