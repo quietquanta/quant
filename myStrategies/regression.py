@@ -13,7 +13,7 @@ class RegressionLongShort:
 			benchmark_returns,			# Series of Benchmark returns, e.g. S&P 500
 			resample_freq = "BM",
 			sample_lookback = 60,			# number of periods of looking back for training data
-			regression_lags = [1],			# lags for autoregression
+			reg_lags_and_weights = { 1:1 },			# lags for autoregression, and the weight for each lag
 			num_longs = 10,					# number of stocks to long for each period
 			num_shorts = 10,				# number of stocks to short for each period
 	):
@@ -24,8 +24,9 @@ class RegressionLongShort:
 		self.riskfree_rate = riskfree_rate;
 		self.benchmark_returns = benchmark_returns;
 
+		# Regression parameters
 		self.sample_lookback = sample_lookback;
-		self.regression_lags = regression_lags;
+		self.reg_lags_and_weights = reg_lags_and_weights;
 
 		self.num_longs = num_longs;
 		self.num_shorts = num_shorts;
@@ -40,7 +41,8 @@ class RegressionLongShort:
 
 		print "Regression facts:\n";
 		print "\tsample_lookback = %d" % self.sample_lookback;
-		print "\tregression_lags =", self.regression_lags;
+		print "\tregression lags =", self.reg_lags_and_weights.keys();
+		print "\tregression lag weights =", self.reg_lags_and_weights.values();
 
 		print "Position Settings:\n"
 		print "\tNumber of Longs \t= %d"%self.num_longs;
@@ -110,7 +112,8 @@ class RegressionLongShort:
 	def _CalcHistoryPositions( self ):
 		returns = self.returns;
 		sample_lookback = self.sample_lookback;
-		regression_lags = self.regression_lags;
+
+		regression_lags = self.reg_lags_and_weights.keys();
 		max_regression_lag = max( regression_lags );
 		reg_coeff_names = [ "coeff_0" ] + [ "coeff_%d" % x for x in regression_lags ];	# column names for regression coefficients
 
@@ -150,14 +153,17 @@ class RegressionLongShort:
 		res = self._regression( i_start, i_end );
 
 		# Use the regression model to predict returns for "current_i + 1" and rank the universe
-		regression_lags = self.regression_lags;
+		reg_lags_and_weights = self.reg_lags_and_weights;
 		returns = self.returns;
 		num_longs = self.num_longs;
 		num_shorts = self.num_shorts;
 
-		X_new_indices = [ current_i+1-x for x in regression_lags ];
-		X_new = returns.iloc[X_new_indices, :];			# p x N matrix, where N is number of stocks in the universe
-		X_new = X_new.transpose();		
+		X_new = list();
+		for lag in reg_lags_and_weights:
+			x_index = current_i + 1 - lag;
+			weight = reg_lags_and_weights[lag];
+			X_new.append( weight * np.array( returns.iloc[ x_index, : ] ) );	# multiply lagged returns with corresponding weight
+		X_new = np.array( X_new ).T;					# After transpose, each row is the lag-weighted return of one stock
 		X_new = sm.add_constant( X_new );						# prepend constant before historical returns
 		y_predict = res.predict( X_new );						# predicted return for the stocks in the universe
 		y_rank = y_predict.argsort()[::-1];						# rank of y_predict in descending order (i.e from Max to Min)
@@ -184,16 +190,23 @@ class RegressionLongShort:
 		"""	OLS regression on stock returns between i_start and i_end
 		"""
 		returns = self.returns;
-		regression_lags = self.regression_lags;
+		reg_lags_and_weights = self.reg_lags_and_weights;
 
 		y_arr = list();		# collect y
 		X_arr = list();		# collect X
 		for j in range( i_start, i_end ):			# j-th row is independent variable "y"
 			y_j = np.array( returns.iloc[j,:] );
-			X_j_indices = [ j-_x for _x in regression_lags ];
-			X_j = np.array( returns.iloc[ X_j_indices, : ]).T;
-
 			y_arr.append( y_j );
+
+
+# to be added for adding weight to X
+			X_j = list();
+			for lag in reg_lags_and_weights:
+				x_index = j - lag;
+				weight = reg_lags_and_weights[lag];
+				X_j.append( weight * np.array( returns.iloc[ x_index, : ] ) );
+
+			X_j = np.array( X_j ).T;			# After transpose, each row is the return of the same stock but with different lags
 			X_arr.append( X_j );
 		
 		y = np.concatenate( y_arr );

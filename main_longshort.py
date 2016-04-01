@@ -40,13 +40,14 @@ longonly_strat = RegressionLongShort( stock_prices,
 longonly_res = longonly_strat.BackAnalysis();
 
 """
+reg_lags_and_weights = { 1:1, 2:0.9, 3:0.81, 12:0.9**11 };
 strat = RegressionLongShort( 
 			stock_prices,
 			riskfree_rate,
 			benchmark_returns,
 			resample_freq = "BM",
 			sample_lookback = 60,			# number of periods of looking back for training data
-			regression_lags = [1],			# lags for autoregression
+			reg_lags_and_weights = reg_lags_and_weights,
 			num_longs = 10,					# number of stocks to long for each period
 			num_shorts = 0,				# number of stocks to short for each period
 );
@@ -60,7 +61,7 @@ print perf_analysis;
 # Plot
 #-------------------------------------------------------------------------
 from matplotlib import pyplot as plt
-if False:
+if True:
 	plt.figure();
 	backtest_res[ "cum_overall" ].plot();
 
