@@ -3,8 +3,9 @@ import pandas as pd;
 import statsmodels.api as sm;
 
 from performance_analysis import calcCAMP, calcRatioGeneric;
+from strategies import RegressionStrategy;
 
-class RegressionLongShort:
+class RegressionLongShort( RegressionStrategy ):
 	"""	Cross-sectional equity long-short strategy based on autoregression using historical pricing data.
 	"""
 	def __init__( self, 
