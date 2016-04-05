@@ -33,13 +33,14 @@ rf_rate = rf_monthly_rate = rf_annualized_rate.apply( deannualization_func );
 #------------------------------------------------------
 def myKalmanFilter(
 	returns,
+	_trans_cov_delta = 1e-3,
 ):
 	""" Use Kalman Filter to obtain first-order auto-regression parameters
 		r_t = beta_0 + beta_1 * r_(t-1)
 	"""
 	# Transition matrix and covariance
 	trans_mat = np.eye(2);								# Assume beta is not to change over time
-	_delta = 1e-1;										
+	_delta = _trans_cov_delta;										
 	trans_cov = _delta / (1 - _delta) * np.eye(2);		# This _delta and trans_cov seem to have great impact on the result
 
 	# form Observation Matrix
@@ -75,7 +76,10 @@ def myKalmanFilter(
 	intercept = pd.Series( state_means[:,1], index );
 	return (intercept, slope);
 
-intercept, slope = myKalmanFilter( monthly_stock_returns );
+intercept, slope = myKalmanFilter( monthly_stock_returns, _trans_cov_delta = 1e-3 );
 
 slope.plot();
+plt.show();
+
+plt.hist( slope );
 plt.show();
