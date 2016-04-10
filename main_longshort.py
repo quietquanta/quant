@@ -40,8 +40,8 @@ longonly_strat = RegressionLongShort( stock_prices,
 longonly_res = longonly_strat.BackAnalysis();
 
 """
-reg_lags_and_weights = { 1:1, 2:0.9, 3:0.9**2, 12:0.9**11 };
-#reg_lags_and_weights = { 1:1 };
+#reg_lags_and_weights = { 1:1, 2:0.9, 3:0.9**2, 12:0.9**11 };
+reg_lags_and_weights = { 1:1 };
 strat = RegressionLongShort( 
 			stock_prices,
 			riskfree_rate,
