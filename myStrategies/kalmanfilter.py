@@ -3,6 +3,7 @@ import pandas as pd
 from pykalman import KalmanFilter
 
 from strategies import RegressionStrategy
+from performance_analysis import calcCAMP, calcRatioGeneric;
 
 class RegressionKalmanFilter( RegressionStrategy ):
 	"""
@@ -195,12 +196,35 @@ class RegressionKalmanFilter( RegressionStrategy ):
 
 
 
-
-
-
-
 	#------------------------------------------------------------
 	# Performance Analysis
 	#------------------------------------------------------------
 	def BackTestAnalysis( self ):
-		pass;
+		backtest_res = self.backtest_result;
+
+		strategy_returns = backtest_res[ "overall" ];
+		riskfree_rate = self.riskfree_rate;
+		benchmark_returns = self.benchmark_returns;
+
+		# Average and standard deviation
+		ave_return = strategy_returns.mean();
+		volatility = strategy_returns.std();
+
+		# CAMP
+		alpha, beta = calcCAMP( strategy_returns, riskfree_rate, benchmark_returns );
+
+		# Sharpe Ratio, Sortino Ratio, and Info Ratio
+		sharpe = calcRatioGeneric( strategy_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
+		sortino = calcRatioGeneric( strategy_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
+		info_ratio = calcRatioGeneric( strategy_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
+
+		self.backtest_analysis = {
+			"Average Return" : ave_return,
+			"Volatility" : volatility,
+			"CAMP" : (alpha, beta),
+			"Sharpe" : sharpe,
+			"Sortino" : sortino,
+			"Info_Ratio" : info_ratio
+		};
+
+		return self.backtest_analysis;
