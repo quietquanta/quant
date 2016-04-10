@@ -110,7 +110,7 @@ class RegressionLongShort( RegressionStrategy ):
 		self.backtest_finished = True;
 		return self.backtest_result;
 
-	def _CalcHistoryPositions( self ):
+	def _CalcHistoricalPositions( self ):
 		returns = self.returns;
 		sample_lookback = self.sample_lookback;
 
