@@ -61,7 +61,7 @@ class RegressionLongShort( RegressionStrategy ):
 			return self.backtest_result;
 
 		# Calculate historical positions
-		self._CalcHistoryPositions();
+		self._CalcHistoricalPositions();
 
 		# Simulation
 		period_seq = [];
