@@ -38,6 +38,7 @@ riskfree_rate = rf_rate;
 
 # 2.1 RegressionLongShort
 reg_lags_and_weights = { 1:1 };
+reg_lags_and_weights = { 1:1, 12:1 };
 strategy_longshort = RegressionLongShort( 
 						stock_prices,
 						riskfree_rate,
@@ -76,20 +77,25 @@ kf_monthly = kf_backtest[ "overall" ].loc[common_start:];
 ls_cum_returns = (1 + ls_monthly ).cumprod();
 kf_cum_returns = (1 + kf_monthly ).cumprod();
 
-fig1 = plt.figure(1);
-plt.plot( ls_monthly.index, ls_monthly.values, label = "Autoregression with\nfixed-size moving window" );
-plt.plot( kf_monthly.index, kf_monthly.values, label = "Kalman Filter" );
-plt.xlabel( "Date" );
-plt.ylabel( "Monthly Returns" );
-plt.title( "Monthly Returns of Strategies" );
-plt.legend();
+#---------------------------------------------------------------
+# 4. Plots
+#---------------------------------------------------------------
+is_to_plot = True;
+if is_to_plot:
+	fig1 = plt.figure(1);
+	plt.plot( ls_monthly.index, ls_monthly.values, label = "Autoregression with\nfixed-size moving window" );
+	plt.plot( kf_monthly.index, kf_monthly.values, label = "Kalman Filter" );
+	plt.xlabel( "Date" );
+	plt.ylabel( "Monthly Returns" );
+	plt.title( "Monthly Returns of Strategies" );
+	plt.legend();
 
-fig2 = plt.figure(2);
-plt.plot( ls_cum_returns.index, ls_cum_returns.values, label = "Autoregression with\nfixed-size moving window" );
-plt.plot( kf_cum_returns.index, kf_cum_returns.values, label = "Kalman Filter" );
-plt.xlabel( "Date" );
-plt.ylabel( "Cumulative Returns" );
-plt.title( "Cumulative Returns of Strategies" );
-plt.legend();
+	fig2 = plt.figure(2);
+	plt.plot( ls_cum_returns.index, ls_cum_returns.values, label = "Autoregression with\nfixed-size moving window" );
+	plt.plot( kf_cum_returns.index, kf_cum_returns.values, label = "Kalman Filter" );
+	plt.xlabel( "Date" );
+	plt.ylabel( "Cumulative Returns" );
+	plt.title( "Cumulative Returns of Strategies" );
+	plt.legend();
 
-plt.show();
+	plt.show();
