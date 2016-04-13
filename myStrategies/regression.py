@@ -151,10 +151,7 @@ class RegressionLongShort( RegressionStrategy ):
 		# Run linear regression on historical returns
 		i_start = current_i - self.sample_lookback;
 		i_end = current_i;
-		X, y = self._AssembleRegressionData_i( i_start, i_end );
-		model = sm.OLS( y, X );
-		res = model.fit();
-
+		res = self._regression_OLS( i_start, i_end );			# res must have a method called "predict"!!
 
 		# Use the regression model to predict returns for "current_i + 1" and rank the universe
 		reg_lags_and_weights = self.reg_lags_and_weights;
@@ -189,6 +186,12 @@ class RegressionLongShort( RegressionStrategy ):
 		# assemble returned values
 		ret = { "long_positions" : long_stocks, "short_positions" : short_stocks, "universe_prediction" : y_predict };
 		return ret;
+
+	def _regression_OLS( self, i_start, i_end ):
+		X, y = self._AssembleRegressionData_i( i_start, i_end );
+		model = sm.OLS( y, X );
+		res = model.fit();
+		return res;
 
 	def _AssembleRegressionData_i( self, i_start, i_end ):	# i_start
 		"""	OLS regression on stock returns between i_start and i_end
