@@ -151,7 +151,10 @@ class RegressionLongShort( RegressionStrategy ):
 		# Run linear regression on historical returns
 		i_start = current_i - self.sample_lookback;
 		i_end = current_i;
-		res = self._regression( i_start, i_end );
+		X, y = self._AssembleRegressionData_i( i_start, i_end );
+		model = sm.OLS( y, X );
+		res = model.fit();
+
 
 		# Use the regression model to predict returns for "current_i + 1" and rank the universe
 		reg_lags_and_weights = self.reg_lags_and_weights;
@@ -187,7 +190,7 @@ class RegressionLongShort( RegressionStrategy ):
 		ret = { "long_positions" : long_stocks, "short_positions" : short_stocks, "universe_prediction" : y_predict };
 		return ret;
 
-	def _regression( self, i_start, i_end ):	# i_start
+	def _AssembleRegressionData_i( self, i_start, i_end ):	# i_start
 		"""	OLS regression on stock returns between i_start and i_end
 		"""
 		returns = self.returns;
@@ -214,11 +217,8 @@ class RegressionLongShort( RegressionStrategy ):
 		X = np.concatenate( X_arr );
 		X = sm.add_constant( X );				# add intercept
 
-		# 1.2 regression
-		model = sm.OLS( y, X );
-		res = model.fit();
+		return (X, y)
 
-		return res;
 
 
 
