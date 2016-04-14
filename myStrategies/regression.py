@@ -131,17 +131,22 @@ class RegressionLongShort( RegressionStrategy ):
 		for i in range( start, end-1 ):		# "end" is the last observed real return, therefore regression ends at one step before it
 			period = returns.index[i];		# current month
 
-			positions_i = self._predict( i );
+			prediction_i = self._predict( i );
 
-			long_pos_hist[period] = positions_i["long_positions"];
-			short_pos_hist[period] = positions_i["short_positions"];
-			predicted_returns_hist[period] = positions_i["universe_prediction"];
+			long_pos_hist[period] = prediction_i["long_positions"];
+			short_pos_hist[period] = prediction_i["short_positions"];
+			predicted_returns_hist[period] = prediction_i["universe_prediction"];
+
+			coeff_index.append( period );
+			coeff_data.append( prediction_i[ "regression_coefficients" ] );
 
 	
 		self.long_pos_hist_df = pd.DataFrame( long_pos_hist ).transpose();
 		self.short_pos_hist_df = pd.DataFrame( short_pos_hist ).transpose();
 		self.predicted_returns_hist_df = pd.DataFrame( predicted_returns_hist ).transpose();
 		self.predicted_returns_hist_df.columns = returns.columns;			# rename columns using stock tickers
+
+		self.reg_coefficients_df = pd.DataFrame( coeff_data, index = coeff_index, columns = reg_coeff_names );
 
 		return ( self.long_pos_hist_df, self.short_pos_hist_df, self.predicted_returns_hist_df );
 
@@ -151,7 +156,7 @@ class RegressionLongShort( RegressionStrategy ):
 		# Run linear regression on historical returns
 		i_start = current_i - self.sample_lookback;
 		i_end = current_i;
-		res = self._regression( i_start, i_end );			# res must have a method called "predict"!!
+		res, reg_coef = self._regression( i_start, i_end );			# res must have a method called "predict"!!
 
 		# Use the regression model to predict returns for "current_i + 1" and rank the universe
 		reg_lags_and_weights = self.reg_lags_and_weights;
@@ -184,14 +189,17 @@ class RegressionLongShort( RegressionStrategy ):
 		periods = returns.index[current_i];
 
 		# assemble returned values
-		ret = { "long_positions" : long_stocks, "short_positions" : short_stocks, "universe_prediction" : y_predict };
+		ret = { "long_positions" : long_stocks, \
+				"short_positions" : short_stocks, \
+				"universe_prediction" : y_predict, \
+				"regression_coefficients" : reg_coef};
 		return ret;
 
 	def _regression( self, i_start, i_end ):
 		X, y = self._AssembleRegressionData_i( i_start, i_end );
 		model = sm.OLS( y, X );
 		res = model.fit();
-		return res;
+		return (res, res.params);
 
 	def _AssembleRegressionData_i( self, i_start, i_end ):	# i_start
 		"""	OLS regression on stock returns between i_start and i_end

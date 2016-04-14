@@ -65,7 +65,7 @@ print perf_analysis;
 # Plot
 #-------------------------------------------------------------------------
 from matplotlib import pyplot as plt
-if True:
+if False:
 	plt.figure();
 	backtest_res[ "cum_overall" ].plot();
 
