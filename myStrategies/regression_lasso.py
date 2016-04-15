@@ -15,10 +15,9 @@ class RegressionLasso( RegressionLongShort ):
 		lasso.fit( X, y );
 
 # Extract Coefficients from LassoCV doesn't quite work. Need to continue
-#		reg_coefficients = [ lasso.intercept_ ] + list( lasso.coef_ );
+# Note: this needs to be updated to show coefficients for predict!!!!!!!!
+		reg_coefficients = list( lasso.coef_ );		
 #		print reg_coefficients
-
-		reg_coefficients = None;			# Needs to be updated to show coefficients for predict!!
 
 		return lasso, reg_coefficients;
 
