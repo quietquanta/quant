@@ -69,8 +69,9 @@ class RegressionLongShort( RegressionStrategy ):
 		short_return_seq = [];			# return sequence of shorted positions
 		return_seq = [];				# return sequence of overall portfolio
 
-		for i in range( len( self.long_pos_hist_df) - 1 ):		# for each selected position at step "i", get its return at step "i+1"
-			period = self.long_pos_hist_df.index[i+1];
+		# Given the positions throughout step i, calculate relevant returns
+		for i in range( len( self.long_pos_hist_df) ):
+			period = self.long_pos_hist_df.index[i];
 			period_seq.append( period );					# Add period to sequence
 
 			long_stock_list = list( self.long_pos_hist_df.iloc[i,:] );
@@ -128,16 +129,17 @@ class RegressionLongShort( RegressionStrategy ):
 		start = max_regression_lag + sample_lookback;		# starting row for regression
 		end = len(returns) ;				# last row for regression
 
+		# Record long/short positions to be held throughout "target_period"
 		for i in range( start, end-1 ):		# "end" is the last observed real return, therefore regression ends at one step before it
-			period = returns.index[i];		# current month
+			target_period = returns.index[i + 1];	# the next period for which predictions are made, i.e. (i+1)st period
 
-			prediction_i = self._predict( i );
+			prediction_i = self._predict( i );		# Prediction is made given info up to current month i
 
-			long_pos_hist[period] = prediction_i["long_positions"];
-			short_pos_hist[period] = prediction_i["short_positions"];
-			predicted_returns_hist[period] = prediction_i["universe_prediction"];
+			long_pos_hist[ target_period] = prediction_i["long_positions"];
+			short_pos_hist[ target_period] = prediction_i["short_positions"];
+			predicted_returns_hist[ target_period] = prediction_i["universe_prediction"];
 
-			coeff_index.append( period );
+			coeff_index.append( target_period );
 			coeff_data.append( prediction_i[ "regression_coefficients" ] );
 
 	
