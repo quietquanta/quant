@@ -1,6 +1,7 @@
 import numpy as np;
 import pandas as pd;
 import statsmodels.api as sm;
+import statsmodels;
 
 from performance_analysis import calcCAMP, calcRatioGeneric;
 from strategies import RegressionStrategy;
@@ -119,8 +120,11 @@ class RegressionLongShort( RegressionStrategy ):
 		max_regression_lag = max( regression_lags );
 		reg_coeff_names = [ "coeff_0" ] + [ "coeff_%d" % x for x in regression_lags ];	# column names for regression coefficients
 
-		coeff_index = [];
+		# Additional info
+		coeff_index = [];			# regression coefficients
 		coeff_data = [];
+		normality_pv_index = [];		# normality test on regression residual
+		normality_pv_data = [];
 
 		long_pos_hist = dict();		# long positions from beginning to end
 		short_pos_hist = dict();	# short positions from beginning to end
@@ -139,18 +143,24 @@ class RegressionLongShort( RegressionStrategy ):
 			short_pos_hist[ target_period] = prediction_i["short_positions"];
 			predicted_returns_hist[ target_period] = prediction_i["universe_prediction"];
 
-			coeff_index.append( target_period );
-			coeff_data.append( prediction_i[ "regression_coefficients" ] );
+			if prediction_i.has_key( "regression_coefficients" ):
+				coeff_index.append( target_period );
+				coeff_data.append( prediction_i[ "regression_coefficients" ] );
+			if prediction_i.has_key( "normality_pvalue" ):
+				normality_pv_index.append( target_period );
+				normality_pv_data.append( prediction_i[ "normality_pvalue" ] );
 
-	
+		# Finally append results to the object
 		self.long_pos_hist_df = pd.DataFrame( long_pos_hist ).transpose();
 		self.short_pos_hist_df = pd.DataFrame( short_pos_hist ).transpose();
 		self.predicted_returns_hist_df = pd.DataFrame( predicted_returns_hist ).transpose();
 		self.predicted_returns_hist_df.columns = returns.columns;			# rename columns using stock tickers
 
-		self.reg_coefficients_df = pd.DataFrame( coeff_data, index = coeff_index, columns = reg_coeff_names );
+		if len( coeff_index ) > 0 and len( coeff_index ) == len( coeff_data ):
+			self.reg_coefficients_df = pd.DataFrame( coeff_data, index = coeff_index, columns = reg_coeff_names );
 
-		return ( self.long_pos_hist_df, self.short_pos_hist_df, self.predicted_returns_hist_df );
+		if len( normality_pv_index ) > 0 and len( normality_pv_index ) == len( normality_pv_data ):
+			self.normality_pvalues_series = pd.Series( normality_pv_data, normality_pv_index );
 
 	def _predict( self, current_i ):	# current_i is the numeric index of a certain period in the return Series
 		"""	Function that ranks stocks in the universe for a given step "i"
@@ -158,7 +168,8 @@ class RegressionLongShort( RegressionStrategy ):
 		# Run linear regression on historical returns
 		i_start = current_i - self.sample_lookback;
 		i_end = current_i;
-		res, reg_coef = self._regression( i_start, i_end );			# res must have a method called "predict"!!
+		regression = self._regression( i_start, i_end );			
+		reg_result = regression[ "reg_result" ];		# reg_result must have a method called "predict"!!
 
 		# Use the regression model to predict returns for "current_i + 1" and rank the universe
 		reg_lags_and_weights = self.reg_lags_and_weights;
@@ -173,7 +184,7 @@ class RegressionLongShort( RegressionStrategy ):
 			X_new.append( weight * np.array( returns.iloc[ x_index, : ] ) );	# multiply lagged returns with corresponding weight
 		X_new = np.array( X_new ).T;					# After transpose, each row is the lag-weighted return of one stock
 		X_new = sm.add_constant( X_new );						# prepend constant before historical returns
-		y_predict = res.predict( X_new );						# predicted return for the stocks in the universe
+		y_predict = reg_result.predict( X_new );						# predicted return for the stocks in the universe
 		y_rank = y_predict.argsort()[::-1];						# rank of y_predict in descending order (i.e from Max to Min)
 
 		if num_longs > 0:
@@ -194,14 +205,27 @@ class RegressionLongShort( RegressionStrategy ):
 		ret = { "long_positions" : long_stocks, \
 				"short_positions" : short_stocks, \
 				"universe_prediction" : y_predict, \
-				"regression_coefficients" : reg_coef};
+		};
+
+		if regression.has_key( "reg_coef" ):
+			ret["regression_coefficients"] = regression[ "reg_coef" ];
+		if regression.has_key( "normality_pvalue" ):
+			ret["normality_pvalue"] = regression[ "normality_pvalue" ];
 		return ret;
 
 	def _regression( self, i_start, i_end ):
 		X, y = self._AssembleRegressionData_i( i_start, i_end );
 		model = sm.OLS( y, X );
-		res = model.fit();
-		return (res, res.params);
+		fitting_result = model.fit();
+
+		# Normality test
+		_, normality_pvalue, _, _ = statsmodels.stats.stattools.jarque_bera( fitting_result.resid );
+
+		res = { "reg_result" : fitting_result,\
+				"reg_coef" : fitting_result.params,\
+				"normality_pvalue" : normality_pvalue,\
+		};
+		return res;
 
 	def _AssembleRegressionData_i( self, i_start, i_end ):	# i_start
 		"""	OLS regression on stock returns between i_start and i_end
