@@ -5,7 +5,7 @@ import statsmodels.api as sm
 from matplotlib import pyplot as plt
 
 from my_helper_fn import *
-from myStrategies.regression_lasso import RegressionLasso
+from myStrategies.regression_lasso import Regression_Lasso
 
 #------------------------------------------------------
 # 1. Read data
@@ -38,7 +38,7 @@ reg_lags_and_weights = {};
 for lag in lags:
 	reg_lags_and_weights[ lag ] = 1;
 
-strategy = RegressionLasso(
+strategy = Regression_Lasso(
 			stock_prices,
 			riskfree_rate,
 			benchmark_returns,

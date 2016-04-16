@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.linear_model import LassoCV			# Alternative is LassoLarsCV (least-angle regression)
 
-from regression import RegressionLongShort
+from regression import Regression_OLS
 
-class RegressionLasso( RegressionLongShort ):
+class Regression_OLS( Regression_OLS ):
 	def _regression( self, i_start, i_end ):
 		"""
 		Model of Lasso

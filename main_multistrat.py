@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from pykalman import KalmanFilter
 
 from my_helper_fn import *
-from myStrategies.regression import RegressionLongShort
+from myStrategies.regression import Regression_OLS
 from myStrategies.kalmanfilter import RegressionKalmanFilter
 
 #------------------------------------------------------
@@ -36,10 +36,10 @@ riskfree_rate = rf_rate;
 # 2. Create strategies
 #------------------------------------------------------------
 
-# 2.1 RegressionLongShort
+# 2.1 Regression_OLS
 reg_lags_and_weights = { 1:1 };
 reg_lags_and_weights = { 1:1, 12:1 };
-strategy_longshort = RegressionLongShort( 
+strategy_longshort = Regression_OLS( 
 						stock_prices,
 						riskfree_rate,
 						benchmark_returns,
