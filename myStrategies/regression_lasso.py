@@ -3,7 +3,7 @@ from sklearn.linear_model import LassoCV			# Alternative is LassoLarsCV (least-a
 
 from regression import Regression_OLS
 
-class Regression_OLS( Regression_OLS ):
+class Regression_Lasso( Regression_OLS ):
 	def _regression( self, i_start, i_end ):
 		"""
 		Model of Lasso
