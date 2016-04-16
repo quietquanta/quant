@@ -121,10 +121,10 @@ class Regression_OLS( RegressionStrategy ):
 		reg_coeff_names = [ "coeff_0" ] + [ "coeff_%d" % x for x in regression_lags ];	# column names for regression coefficients
 
 		# Additional info
-		coeff_index = [];			# regression coefficients
-		coeff_data = [];
-		normality_pv_index = [];		# normality test on regression residual
-		normality_pv_data = [];
+		reg_info_index = [];
+		coeff_data = [];				# regression coefficients
+		normality_pv_data = [];			# normality test on regression residual
+		hetero_pv_data = [];			# Heteroskedasticity test
 
 		long_pos_hist = dict();		# long positions from beginning to end
 		short_pos_hist = dict();	# short positions from beginning to end
@@ -143,12 +143,14 @@ class Regression_OLS( RegressionStrategy ):
 			short_pos_hist[ target_period] = prediction_i["short_positions"];
 			predicted_returns_hist[ target_period] = prediction_i["universe_prediction"];
 
+			reg_info_index.append( target_period );
+
 			if prediction_i.has_key( "regression_coefficients" ):
-				coeff_index.append( target_period );
 				coeff_data.append( prediction_i[ "regression_coefficients" ] );
 			if prediction_i.has_key( "normality_pvalue" ):
-				normality_pv_index.append( target_period );
 				normality_pv_data.append( prediction_i[ "normality_pvalue" ] );
+			if prediction_i.has_key( "heteroskedasticity_pvalue" ):
+				hetero_pv_data.append( prediction_i[ "heteroskedasticity_pvalue" ] );
 
 		# Finally append results to the object
 		self.long_pos_hist_df = pd.DataFrame( long_pos_hist ).transpose();
@@ -156,11 +158,14 @@ class Regression_OLS( RegressionStrategy ):
 		self.predicted_returns_hist_df = pd.DataFrame( predicted_returns_hist ).transpose();
 		self.predicted_returns_hist_df.columns = returns.columns;			# rename columns using stock tickers
 
-		if len( coeff_index ) > 0 and len( coeff_index ) == len( coeff_data ):
-			self.reg_coefficients_df = pd.DataFrame( coeff_data, index = coeff_index, columns = reg_coeff_names );
+		if len( coeff_data ) > 0 and len( reg_info_index ) == len( coeff_data ):
+			self.reg_coefficients_df = pd.DataFrame( coeff_data, index = reg_info_index, columns = reg_coeff_names );
 
-		if len( normality_pv_index ) > 0 and len( normality_pv_index ) == len( normality_pv_data ):
-			self.normality_pvalues_series = pd.Series( normality_pv_data, normality_pv_index );
+		if len( normality_pv_data ) > 0 and len( reg_info_index ) == len( normality_pv_data ):
+			self.normality_pvalues_series = pd.Series( normality_pv_data, reg_info_index );
+
+		if len( hetero_pv_data ) > 0 and len( reg_info_index ) == len( hetero_pv_data ):
+			self.heteroskedasticity_pvalues_series = pd.Series( hetero_pv_data, reg_info_index );
 
 	def _predict( self, current_i ):	# current_i is the numeric index of a certain period in the return Series
 		"""	Function that ranks stocks in the universe for a given step "i"
@@ -211,6 +216,9 @@ class Regression_OLS( RegressionStrategy ):
 			ret["regression_coefficients"] = regression[ "reg_coef" ];
 		if regression.has_key( "normality_pvalue" ):
 			ret["normality_pvalue"] = regression[ "normality_pvalue" ];
+		if regression.has_key( "heteroskedasticity_pvalue" ):
+			ret["heteroskedasticity_pvalue" ] = regression[ "heteroskedasticity_pvalue" ];
+
 		return ret;
 
 	def _regression( self, i_start, i_end ):
@@ -221,9 +229,13 @@ class Regression_OLS( RegressionStrategy ):
 		# Normality test
 		_, normality_pvalue, _, _ = statsmodels.stats.stattools.jarque_bera( fitting_result.resid );
 
+		# Heteroskedasticity test
+		_, hetero_pvalue, _, _ = statsmodels.stats.diagnostic.het_breushpagan( fitting_result.resid, model.exog );
+
 		res = { "reg_result" : fitting_result,\
 				"reg_coef" : fitting_result.params,\
 				"normality_pvalue" : normality_pvalue,\
+				"heteroskedasticity_pvalue" : hetero_pvalue,\
 		};
 		return res;
 
