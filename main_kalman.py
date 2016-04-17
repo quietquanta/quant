@@ -25,7 +25,7 @@ benchmark_returns = snp_500_returns;
 rf_annualized_rate = read_from_csv( "riskfree.csv", rescale_factor = 0.01 );
 def deannualization_func( annual_rate, freq="M" ):
 	if freq is "M":
-		return (1+annual_rate)**(1/12) - 1
+		return (1+annual_rate)**(1./12) - 1
 
 rf_rate = rf_monthly_rate = rf_annualized_rate.apply( deannualization_func );
 riskfree_rate = rf_rate;

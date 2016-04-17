@@ -24,9 +24,10 @@ snp_500_returns = snp_500.pct_change().iloc[1:];
 benchmark_returns = snp_500_returns;
 
 rf_annualized_rate = read_from_csv( "riskfree.csv", rescale_factor = 0.01 );
+rf_annualized_rate = rf_annualized_rate.resample('BM').last();
 def deannualization_func( annual_rate, freq="M" ):
 	if freq is "M":
-		return (1+annual_rate)**(1/12) - 1
+		return (1+annual_rate)**(1./12) - 1
 
 rf_rate = rf_monthly_rate = rf_annualized_rate.apply( deannualization_func );
 riskfree_rate = rf_rate;
@@ -39,7 +40,7 @@ riskfree_rate = rf_rate;
 # 2.1 Regression_OLS
 reg_lags_and_weights = { 1:1 };
 reg_lags_and_weights = { 1:1, 12:1 };
-strategy_longshort = Regression_OLS( 
+strategy_ols = Regression_OLS( 
 						stock_prices,
 						riskfree_rate,
 						benchmark_returns,
@@ -49,9 +50,9 @@ strategy_longshort = Regression_OLS(
 						num_longs = 10,					# number of stocks to long for each period
 						num_shorts = 0,				# number of stocks to short for each period
 );
-longshort_backtest = strategy_longshort.BackTest();
-longshort_backtest_analysis = strategy_longshort.BackTestAnalysis();
-print longshort_backtest_analysis;
+ols_backtest = strategy_ols.BackTest();
+ols_backtest_analysis = strategy_ols.BackTestAnalysis();
+print ols_backtest_analysis;
 
 # 2.2 RegressionKalmanFilter
 strategy_kalmanfilter = RegressionKalmanFilter(
@@ -71,8 +72,8 @@ print kf_backtest_analysis
 # 3. Compare backtest results
 #---------------------------------------------------------------
 
-common_start = max( longshort_backtest["overall"].index[0], kf_backtest["overall"].index[0] );
-ls_monthly = longshort_backtest["overall"].loc[ common_start:];
+common_start = max( ols_backtest["portfolio"].index[0], kf_backtest["overall"].index[0] );
+ls_monthly = ols_backtest["portfolio"].loc[ common_start:];
 kf_monthly = kf_backtest[ "overall" ].loc[common_start:];
 ls_cum_returns = (1 + ls_monthly ).cumprod();
 kf_cum_returns = (1 + kf_monthly ).cumprod();

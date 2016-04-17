@@ -20,9 +20,10 @@ snp_500 = snp_500.resample( "BM" ).last();
 benchmark_returns = snp_500_returns = snp_500.pct_change().iloc[1:];
 
 rf_annualized_rate = read_from_csv( "riskfree.csv", rescale_factor = 0.01 );
+rf_annualized_rate = rf_annualized_rate.resample( "BM" ).last();
 def deannualization_func( annual_rate, freq="M" ):
 	if freq is "M":
-		return (1+annual_rate)**(1/12) - 1
+		return (1+annual_rate)**(1./12) - 1
 
 riskfree_rate = rf_monthly_rate = rf_annualized_rate.apply( deannualization_func );
 
@@ -67,13 +68,16 @@ print perf_analysis;
 from matplotlib import pyplot as plt
 if True:
 	plt.figure();
-	backtest_res[ "cum_overall" ].plot();
+	backtest_res[ "cum_portfolio" ].plot();
 
 	plt.figure();
-	backtest_res[ "cum_long" ].plot();
+	backtest_res[ "cum_strategy" ].plot();
 
-	if not strat_is_long_only:
-		plt.figure();
-		backtest_res[ "cum_short" ].plot()
+#	plt.figure();
+#	backtest_res[ "cum_long" ].plot();
+
+#	if not strat_is_long_only:
+#		plt.figure();
+#		backtest_res[ "cum_short" ].plot()
 
 	plt.show();

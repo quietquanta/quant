@@ -11,13 +11,15 @@ class Regression_OLS( RegressionStrategy ):
 	"""
 	def __init__( self, 
 			prices, 					# Dataframe of stock price histories for all stocks in the universe
-			riskfree_rate,				# Series of Riskfree Rate, e.g. Riskfree Rate
-			benchmark_returns,			# Series of Benchmark returns, e.g. S&P 500
+			riskfree_rate,				# DataFrame of Riskfree Rate, e.g. Riskfree Rate
+			benchmark_returns,			# DataFrame of Benchmark returns, e.g. S&P 500
 			resample_freq = "BM",
 			sample_lookback = 60,			# number of periods of looking back for training data
 			reg_lags_and_weights = { 1:1 },			# lags for autoregression, and the weight for each lag
 			num_longs = 10,					# number of stocks to long for each period
 			num_shorts = 10,				# number of stocks to short for each period
+			include_riskfree_in_portfolio = False,
+			include_benchmark_in_portfolio = False,
 	):
 
 		self.prices = prices.resample( "BM" ).last();
@@ -61,14 +63,20 @@ class Regression_OLS( RegressionStrategy ):
 		if self.backtest_finished:					# if backtest has been done, return result directly
 			return self.backtest_result;
 
+		riskfree_rate = self.riskfree_rate;
+		benchmark_returns = self.benchmark_returns;
+
 		# Calculate historical positions
 		self._CalcHistoricalPositions();
 
 		# Simulation
 		period_seq = [];
-		long_return_seq = [];			# return sequence of longed positions
-		short_return_seq = [];			# return sequence of shorted positions
-		return_seq = [];				# return sequence of overall portfolio
+		strategy_long_return_seq = [];			# return sequence of longed positions
+		strategy_short_return_seq = [];			# return sequence of shorted positions
+		strategy_return_seq = [];				# return sequence of overall portfolio
+		port_return_seq = [];
+
+		asset_weights_seq = [];					# { 'riskfree' : w_1, 'benchmark' : w_2, 'strategy' : w_3 } where w_1 + w_2 + w_3 = 1
 
 		# Given the positions throughout step i, calculate relevant returns
 		for i in range( len( self.long_pos_hist_df) ):
@@ -83,30 +91,49 @@ class Regression_OLS( RegressionStrategy ):
 
 			long_ave_return = long_returns.mean();
 			if len(short_returns) == 0:
-				short_weight = 0.
+				relative_short_weight = 0.			# weights of short positions for the regression strategy
 				short_ave_return = 0;
-				port_return = long_ave_return;
+				strategy_return = long_ave_return;
 			else:
-				short_weight = 0.5;				# fraction of portfolio that's in short positions
+				relative_short_weight = 0.5;					# weights of short positions for the regression strategy
 				short_ave_return = short_returns.mean();			# return NaN if empty series
-				port_return = (1 - short_weight ) * long_ave_return - short_weight * short_ave_return;
+				strategy_return = (1 - relative_short_weight ) * long_ave_return - relative_short_weight * short_ave_return;
 
-			long_return_seq.append( long_ave_return );
-			short_return_seq.append( -short_ave_return );	# short position return is the negative of stock returns
-			return_seq.append( port_return );
+			strategy_long_return_seq.append( long_ave_return );
+			strategy_short_return_seq.append( -short_ave_return );	# short position return is the negative of stock returns
+			strategy_return_seq.append( strategy_return );
 
-		overall_return_series = pd.Series( return_seq, period_seq );
-		long_return_series = pd.Series( long_return_seq, period_seq );
-		short_return_series = pd.Series( short_return_seq, period_seq );
+			# asset weights
+			w_riskfree = 0.;
+			w_benchmark = 0.0;
+			w_strategy = 1.;
+			asset_weights_seq.append( { 'riskfree' : w_riskfree, 'benchmark' : w_benchmark, 'w_strategy' : w_strategy } );
+
+			# Overall
+			period_riskfree = riskfree_rate.loc[ period, u'^IRX' ];			# Or use .squeeze() to convert to Series
+			period_benchmark = - benchmark_returns.loc[ period, u'^GSPC' ];	# negative for beta hedging
+			port_return = w_riskfree * period_riskfree + w_benchmark * period_benchmark + w_strategy * strategy_return;
+			port_return_seq.append( port_return );
+
+		strategy_return_series = pd.Series( strategy_return_seq, period_seq );
+		strategy_long_return_series = pd.Series( strategy_long_return_seq, period_seq );
+		strategy_short_return_series = pd.Series( strategy_short_return_seq, period_seq );
+		port_return_series = pd.Series( port_return_seq, period_seq );
+
+		asset_weights_df = pd.DataFrame( asset_weights_seq, index=period_seq );
 
 		self.backtest_result = {	\
-			"overall" : overall_return_series,\
-			"long" : long_return_series,\
-			"short" : short_return_series,\
+			"portfolio" : port_return_series,\
+			"strategy" : strategy_return_series,\
+			"strategy_long" : strategy_long_return_series,\
+			"strategy_short" : strategy_short_return_series,\
 
-			"cum_overall" : (1+overall_return_series).cumprod(),\
-			"cum_long" : (1+long_return_series).cumprod(),\
-			"cum_short" : (1+short_return_series).cumprod()
+			"cum_portfolio" : (1 + port_return_series).cumprod(),\
+			"cum_strategy" : (1 + strategy_return_series ).cumprod(),\
+			"cum_strategy_long" : (1 + strategy_long_return_series).cumprod(),\
+			"cum_strategy_short" : (1 + strategy_short_return_series).cumprod(),\
+
+			"asset_weights" : asset_weights_df,\
 		};
 
 		self.backtest_finished = True;
@@ -141,7 +168,7 @@ class Regression_OLS( RegressionStrategy ):
 
 			long_pos_hist[ target_period] = prediction_i["long_positions"];
 			short_pos_hist[ target_period] = prediction_i["short_positions"];
-			predicted_returns_hist[ target_period] = prediction_i["universe_prediction"];
+			predicted_returns_hist[ target_period ] = prediction_i["universe_prediction"];
 
 			reg_info_index.append( target_period );
 
@@ -277,21 +304,21 @@ class Regression_OLS( RegressionStrategy ):
 	def BackTestAnalysis( self ):
 		backtest_res = self.backtest_result;
 
-		strategy_returns = backtest_res[ "overall" ];
+		port_returns = backtest_res[ "portfolio" ];
 		riskfree_rate = self.riskfree_rate;
 		benchmark_returns = self.benchmark_returns;
 
 		# Average and standard deviation
-		ave_return = strategy_returns.mean();
-		volatility = strategy_returns.std();
+		ave_return = port_returns.mean();
+		volatility = port_returns.std();
 
 		# CAMP
-		alpha, beta = calcCAMP( strategy_returns, riskfree_rate, benchmark_returns );
+		alpha, beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
-		sharpe = calcRatioGeneric( strategy_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
-		sortino = calcRatioGeneric( strategy_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
-		info_ratio = calcRatioGeneric( strategy_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
+		sharpe = calcRatioGeneric( port_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
+		sortino = calcRatioGeneric( port_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
+		info_ratio = calcRatioGeneric( port_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
 
 		self.backtest_analysis = {
 			"Average Return" : ave_return,
