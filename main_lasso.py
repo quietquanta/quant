@@ -52,8 +52,6 @@ strategy = Regression_Lasso(
 backtest_res = strategy.BackTest();
 print strategy.BackTestAnalysis();
 
-
-
 #---------------------------------
 # Plot
 #---------------------------------
