@@ -12,7 +12,7 @@ from myStrategies.regression import Regression_OLS
 # 1. Read data
 #------------------------------------------------------
 # (1) Read daily prices and convert to monthly returns
-price_csv = 'stock_adj_close_2000_2015.csv';
+price_csv = 'stock_adj_close_1991_2015.csv';
 stock_prices = read_from_csv( price_csv );
 # (2) Benchmark and risk-free rate
 snp_500 = read_from_csv( "benchmark.csv" );
@@ -41,7 +41,7 @@ longonly_strat = Regression_OLS( stock_prices,
 longonly_res = longonly_strat.BackAnalysis();
 
 """
-lags = range(1,13);
+lags = range(1,2);
 reg_lags_and_weights = {};
 for lag in lags:
 	reg_lags_and_weights[ lag ] = 1;
@@ -61,17 +61,28 @@ backtest_res = strat.BackTest();
 perf_analysis = strat.BackTestAnalysis();
 print perf_analysis;
 
-
 #-------------------------------------------------------------------------
 # Plot
 #-------------------------------------------------------------------------
 from matplotlib import pyplot as plt
 if True:
 	plt.figure();
-	backtest_res[ "cum_portfolio" ].plot();
+	backtest_res[ "cum_portfolio" ].plot( legend = True );
 
-	plt.figure();
-	backtest_res[ "cum_strategy" ].plot();
+#	plt.figure();
+#	backtest_res[ "cum_strategy" ].plot( legend = True);
+
+#	plt.figure();
+#	backtest_res[ 'pred_vs_real_df' ].loc[:,"diff_std"].plot( legend=True );
+
+#	plt.figure();
+#	backtest_res[ 'pred_vs_real_df' ].loc[:,"correlation"].plot( legend=True );
+
+#	plt.figure();
+#	backtest_res[ 'pred_vs_real_df' ].loc[:,"spearman_ranking_corr"].plot( legend=True );
+
+#	plt.figure();
+#	backtest_res[ 'pred_vs_real_df' ].loc[:,"spearman_ranking_pvalue"].plot( legend=True );
 
 #	plt.figure();
 #	backtest_res[ "cum_long" ].plot();

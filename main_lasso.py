@@ -49,8 +49,7 @@ strategy = Regression_Lasso(
 			num_shorts = 0,				# number of stocks to short for each period
 );
 
-#long_pos, short_pos = strategy._CalcHistoricalPositions();
-strategy.BackTest();
+backtest_res = strategy.BackTest();
 print strategy.BackTestAnalysis();
 
 
@@ -60,10 +59,21 @@ print strategy.BackTestAnalysis();
 #---------------------------------
 if True:
 	plt.figure();
-	cum_overall_series = strategy.backtest_result['cum_portfolio'];
-	cum_overall_series.plot();
-	plt.show();
+	backtest_res['cum_portfolio'].plot();
 
 	plt.figure();
-	strategy.backtest_result['cum_strategy'].plot();
-	plt.show()
+	backtest_res['cum_strategy'].plot();
+
+	plt.figure();
+	backtest_res[ 'pred_vs_real_df' ].loc[:,"diff_std"].plot( legend=True );
+
+#	plt.figure();
+#	backtest_res[ 'pred_vs_real_df' ].loc[:,"correlation"].plot( legend=True );
+
+#	plt.figure();
+#	backtest_res[ 'pred_vs_real_df' ].loc[:,"spearman_ranking_corr"].plot( legend=True );
+
+	plt.figure();
+	backtest_res[ 'pred_vs_real_df' ].loc[:,"spearman_ranking_pvalue"].plot( legend=True );
+
+	plt.show();
