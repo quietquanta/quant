@@ -170,7 +170,7 @@ class RegressionKalmanFilter( RegressionStrategy ):
 		obs_cov = np.eye( num_stocks );						# assume zero correlation among noises in observed stock returns
 
 		#print "Shape of observation matrix is ", obs_mat.shape;
-		print "Example of obs_mat is ", obs_mat[:2,:,:];
+		#print "Example of obs_mat is ", obs_mat[:2,:,:];
 
 		# Observed stock returns: r_t
 		index = returns.index[1:];							# index for beta_1(t)

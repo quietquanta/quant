@@ -99,7 +99,8 @@ strategy = RegressionKalmanFilter(
 );
 
 #long_pos, short_pos = strategy._CalcHistoricalPositions();
-strategy.BackTest();
+backtest_res = strategy.BackTest();
+print strategy.BackTestAnalysis();
 
 
 
