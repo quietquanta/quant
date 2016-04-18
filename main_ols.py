@@ -12,7 +12,7 @@ from myStrategies.regression import Regression_OLS
 # 1. Read data
 #------------------------------------------------------
 # (1) Read daily prices and convert to monthly returns
-price_csv = 'stock_adj_close_1991_2015.csv';
+price_csv = 'stock_adj_close_2000_2015.csv';
 stock_prices = read_from_csv( price_csv );
 # (2) Benchmark and risk-free rate
 snp_500 = read_from_csv( "benchmark.csv" );
