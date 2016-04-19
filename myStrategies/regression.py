@@ -136,7 +136,7 @@ class Regression_OLS( RegressionStrategy ):
 #			diff_std_compared_to = prev_real_returns.std();
 #			diff_std_compared_to = prev_reg_result.resid.mean();
 
-			strategy_is_on = ( i == 0 ) or \
+			strategy_is_on = ( i > 0 ) and \
 								( pred_vs_real_diff_std <= diff_std_compared_to and \
 									pred_vs_real_spearmanr_pv < 0.05 and \
 									strategy_return > 0 );

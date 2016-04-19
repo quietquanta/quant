@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import pandas as pd
 from pykalman import KalmanFilter
 
@@ -44,19 +45,47 @@ class RegressionKalmanFilter( RegressionStrategy ):
 
 		if self.backtest_finished:					# if backtest has been done, return result directly
 			return self.backtest_result;
+		riskfree_rate = self.riskfree_rate;
+		benchmark_returns = self.benchmark_returns;
 
 		# Calculate historical positions
 		self._CalcHistoricalPositions();
+		predicted_returns_hist_df = self.predicted_returns_hist_df;
+		real_returns_hist_df = self.returns;
 
 		# Simulation
 		period_seq = [];
-		long_return_seq = [];			# return sequence of longed positions
-		short_return_seq = [];			# return sequence of shorted positions
-		return_seq = [];				# return sequence of overall portfolio
+		strategy_long_return_seq = [];			# return sequence of longed positions
+		strategy_short_return_seq = [];			# return sequence of shorted positions
+		strategy_return_seq = [];				# return sequence of overall portfolio
+		port_return_seq = [];
+		pred_vs_real_seq = [];					# store measures for the quality of prediction from PREVIOUS period
+		asset_weights_seq = [];					# { 'riskfree' : w_1, 'benchmark' : w_2, 'strategy' : w_3 } where w_1 + w_2 + w_3 = 1
+
 
 		for i in range( len( self.long_pos_hist_df) ):		# for each selected position at step "i", get its return at step "i+1"
 			period = self.long_pos_hist_df.index[i];
 			period_seq.append( period );					# Add period to sequence
+
+			if i > 0:
+				prev_period = self.long_pos_hist_df.index[i-1];					# previous period
+
+				prev_pred_returns = predicted_returns_hist_df.loc[ prev_period ];	#predicted returns during previous period
+				prev_real_returns = real_returns_hist_df.loc[ prev_period ];		#real returns during previous period
+
+				pred_vs_real_diff_std = prev_pred_returns.sub( prev_real_returns ).std();	# standard deviation of "predicted-real"
+				pred_vs_real_corrcoefs = np.corrcoef( np.array( prev_pred_returns ), np.array( prev_real_returns ) );	# correlation
+				pred_vs_real_spearmanr, pred_vs_real_spearmanr_pv = \
+							sp.stats.spearmanr( np.array( prev_pred_returns ),\
+												np.array( prev_real_returns ) );	# Spearman corr and p-value
+
+				pred_vs_real_seq.append(\
+					{ 	"diff_std" : pred_vs_real_diff_std,\
+						"correlation" : pred_vs_real_corrcoefs[0,1],\
+						"spearman_ranking_corr" : pred_vs_real_spearmanr,\
+						"spearman_ranking_pvalue" : pred_vs_real_spearmanr_pv,\
+					}
+				);
 
 			long_stock_list = list( self.long_pos_hist_df.iloc[i,:] );
 			short_stock_list = list( self.short_pos_hist_df.iloc[i,:] );
@@ -66,30 +95,67 @@ class RegressionKalmanFilter( RegressionStrategy ):
 
 			long_ave_return = long_returns.mean();
 			if len(short_returns) == 0:
-				short_weight = 0.
+				relative_short_weight = 0.
 				short_ave_return = 0;
-				port_return = long_ave_return;
+				strategy_return = long_ave_return;
 			else:
-				short_weight = 0.5;				# fraction of portfolio that's in short positions
+				relative_short_weight = 0.5;				# fraction of portfolio that's in short positions
 				short_ave_return = short_returns.mean();			# return NaN if empty series
-				port_return = (1 - short_weight ) * long_ave_return - short_weight * short_ave_return;
+				strategy_return = (1 - relative_short_weight ) * long_ave_return - relative_short_weight * short_ave_return;
 
-			long_return_seq.append( long_ave_return );
-			short_return_seq.append( -short_ave_return );	# short position return is the negative of stock returns
-			return_seq.append( port_return );
+			strategy_long_return_seq.append( long_ave_return );
+			strategy_short_return_seq.append( -short_ave_return );	# short position return is the negative of stock returns
+			strategy_return_seq.append( strategy_return );
 
-		overall_return_series = pd.Series( return_seq, period_seq );
-		long_return_series = pd.Series( long_return_seq, period_seq );
-		short_return_series = pd.Series( short_return_seq, period_seq );
+			# Determin if strategy should be "on" based on prediction quality and strategy prediction
+			diff_std_compared_to = 0.1;								# Select a proper measure to compare diff_std to
+#			diff_std_compared_to = prev_real_returns.std();
+
+			strategy_is_on = ( i > 0 ) and \
+								( pred_vs_real_diff_std <= diff_std_compared_to and \
+									pred_vs_real_spearmanr_pv < 0.05 and \
+									strategy_return > 0 );
+
+			# Asset allocation for current period. Rebalance if necessary
+			if strategy_is_on:
+				w_riskfree = 0.;
+				w_benchmark = 0.0;
+				w_strategy = 1.;
+			else:
+				w_riskfree = 1.;
+				w_benchmark = 0.0;
+				w_strategy = 0.;
+			asset_weights_seq.append( { 'riskfree' : w_riskfree, 'benchmark' : w_benchmark, 'w_strategy' : w_strategy } );
+
+			# Overall
+			period_riskfree = riskfree_rate.loc[ period, u'^IRX' ];			# Or use .squeeze() to convert to Series
+			period_benchmark = - benchmark_returns.loc[ period, u'^GSPC' ];	# negative for beta hedging
+			port_return = w_riskfree * period_riskfree + w_benchmark * period_benchmark + w_strategy * strategy_return;
+			port_return_seq.append( port_return );
+
+
+		strategy_return_series = pd.Series( strategy_return_seq, period_seq );
+		strategy_long_return_series = pd.Series( strategy_long_return_seq, period_seq );
+		strategy_short_return_series = pd.Series( strategy_short_return_seq, period_seq );
+		port_return_series = pd.Series( port_return_seq, period_seq );
+
+		asset_weights_df = pd.DataFrame( asset_weights_seq, index=period_seq );
+
+		pred_vs_real_df = pd.DataFrame( pred_vs_real_seq, index = period_seq[:-1] );	# Last period should be excluded as prev_vs_real_df is constructed from "previous period"
 
 		self.backtest_result = {	\
-			"overall" : overall_return_series,\
-			"long" : long_return_series,\
-			"short" : short_return_series,\
+			"portfolio" : port_return_series,\
+			"strategy" : strategy_return_series,\
+			"strategy_long" : strategy_long_return_series,\
+			"strategy_short" : strategy_short_return_series,\
 
-			"cum_overall" : (1+overall_return_series).cumprod(),\
-			"cum_long" : (1+long_return_series).cumprod(),\
-			"cum_short" : (1+short_return_series).cumprod()
+			"cum_portfolio" : (1 + port_return_series).cumprod(),\
+			"cum_strategy" : (1 + strategy_return_series).cumprod(),\
+			"cum_strategy_long" : (1 + strategy_long_return_series).cumprod(),\
+			"cum_strategy_short" : (1 + strategy_short_return_series).cumprod(),\
+
+			"asset_weights" : asset_weights_df,\
+			"pred_vs_real_df" : pred_vs_real_df,\
 		};
 
 		self.backtest_finished = True;
@@ -101,7 +167,7 @@ class RegressionKalmanFilter( RegressionStrategy ):
 		Calculate historical positions based on prediction made with Kalman Filter
 		"""
 		
-		predicted_returns = self._PredictionforAllPeriods();
+		predicted_returns_hist_df = self._PredictionforAllPeriods();
 		returns = self.returns;
 		num_longs = self.num_longs;
 		num_shorts = self.num_shorts;
@@ -114,8 +180,8 @@ class RegressionKalmanFilter( RegressionStrategy ):
 
 		for i in range( start, end-1 ):
 			period = returns.index[i];			# index of date at position i
-			predicted_returns_i = np.array( predicted_returns.loc[ period, : ] );
-			rank = predicted_returns_i.argsort()[::-1];		# rank of y_predict in descending order (i.e from Max to Min)
+			predicted_returns_hist_df_i = np.array( predicted_returns_hist_df.loc[ period, : ] );
+			rank = predicted_returns_hist_df_i.argsort()[::-1];		# rank of y_predict in descending order (i.e from Max to Min)
 
 			# Long positions and short positions to be held during period "period". Note that the decision has been made by the
 			# previous period
@@ -141,9 +207,9 @@ class RegressionKalmanFilter( RegressionStrategy ):
 		input_returns = returns.shift(1);			# shift t-1 return to t as the inputs: predicted(t) = beta_0 + beta_1 * r(t-1)
 		predicted_returns = input_returns.multiply( slope, axis=0 ).add( intercept, axis=0 );
 
-		self.predicted_returns = predicted_returns;
+		self.predicted_returns_hist_df = predicted_returns;
 
-		return self.predicted_returns;
+		return self.predicted_returns_hist_df;
 
 
 
@@ -191,6 +257,10 @@ class RegressionKalmanFilter( RegressionStrategy ):
 
 		slope = pd.Series( state_means[:,0], index );
 		intercept = pd.Series( state_means[:,1], index );
+
+		kf_coefficients_df = pd.DataFrame( [ intercept, slope ], index = [ "coeff_0", "coeff_1" ] );
+		self.kf_coefficients_df = kf_coefficients_df.transpose();
+
 		return (intercept, slope);
 
 
@@ -202,21 +272,21 @@ class RegressionKalmanFilter( RegressionStrategy ):
 	def BackTestAnalysis( self ):
 		backtest_res = self.backtest_result;
 
-		strategy_returns = backtest_res[ "overall" ];
+		port_returns = backtest_res[ "portfolio" ];
 		riskfree_rate = self.riskfree_rate;
 		benchmark_returns = self.benchmark_returns;
 
 		# Average and standard deviation
-		ave_return = strategy_returns.mean();
-		volatility = strategy_returns.std();
+		ave_return = port_returns.mean();
+		volatility = port_returns.std();
 
 		# CAMP
-		alpha, beta = calcCAMP( strategy_returns, riskfree_rate, benchmark_returns );
+		alpha, beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
-		sharpe = calcRatioGeneric( strategy_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
-		sortino = calcRatioGeneric( strategy_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
-		info_ratio = calcRatioGeneric( strategy_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
+		sharpe = calcRatioGeneric( port_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
+		sortino = calcRatioGeneric( port_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
+		info_ratio = calcRatioGeneric( port_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
 
 		self.backtest_analysis = {
 			"Average Return" : ave_return,

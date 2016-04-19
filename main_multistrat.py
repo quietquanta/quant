@@ -72,11 +72,11 @@ print kf_backtest_analysis
 # 3. Compare backtest results
 #---------------------------------------------------------------
 
-common_start = max( ols_backtest["portfolio"].index[0], kf_backtest["overall"].index[0] );
+common_start = max( ols_backtest["portfolio"].index[0], kf_backtest["portfolio"].index[0] );
 ols_port_monthly = ols_backtest["portfolio"].loc[ common_start:];
 ols_strategy_monthly = ols_backtest['strategy'].loc[ common_start:];
 
-kf_monthly = kf_backtest[ "overall" ].loc[common_start:];
+kf_monthly = kf_backtest[ "portfolio" ].loc[common_start:];
 ols_port_cum_returns = (1 + ols_port_monthly ).cumprod();
 ols_strategy_cum_returns = (1 + ols_strategy_monthly ).cumprod();
 kf_cum_returns = (1 + kf_monthly ).cumprod();
@@ -101,6 +101,9 @@ if True:
 	plt.xlabel( "Date" );
 	plt.ylabel( "Cumulative Returns" );
 	plt.title( "Cumulative Returns of Strategies" );
-	plt.legend();
+	plt.legend( 
+#		bbox_to_anchor = (0,1),
+		loc = 0
+	);
 
 	plt.show();
