@@ -245,12 +245,12 @@ class Regression_OLS( RegressionStrategy ):
 			self.reg_coefficients_df = pd.DataFrame( coeff_data, index = reg_info_index, columns = reg_coeff_names );
 
 		if len( normality_pv_data ) > 0 and len( reg_info_index ) == len( normality_pv_data ):
-			self.normality_pvalues_series = pd.Series( normality_pv_data, reg_info_index );
+			self.normality_pvalues_series = pd.Series( normality_pv_data, reg_info_index, name = "normality_pvalues" );
 
 		if len( hetero_pv_data ) > 0 and len( reg_info_index ) == len( hetero_pv_data ):
-			self.heteroskedasticity_pvalues_series = pd.Series( hetero_pv_data, reg_info_index );
+			self.heteroskedasticity_pvalues_series = pd.Series( hetero_pv_data, reg_info_index, name = "heteroskedasticity_pvalues" );
 
-	def _predict( self, current_i ):	# current_i is the numeric index of a certain period in the return Series
+	def _predict( self, current_i ):	# current_i is the numeric findex of a certain period in the return Series
 		"""	Function that ranks stocks in the universe for a given step "i"
 		"""
 		# Run linear regression on historical returns
