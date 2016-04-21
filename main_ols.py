@@ -41,7 +41,7 @@ longonly_strat = Regression_OLS( stock_prices,
 longonly_res = longonly_strat.BackAnalysis();
 
 """
-lags = range(1,2);
+lags = range(1,13);
 reg_lags_and_weights = {};
 for lag in lags:
 	reg_lags_and_weights[ lag ] = 1;
@@ -58,8 +58,9 @@ strat = Regression_OLS(
 );
 strat_is_long_only = strat.num_shorts <= 0;
 backtest_res = strat.BackTest();
-perf_analysis = strat.BackTestAnalysis();
-print perf_analysis;
+portfolio_performance, strategy_performance = strat.BackTestAnalysis();
+print portfolio_performance;
+print strategy_performance;
 
 #-------------------------------------------------------------------------
 # Plot
@@ -69,8 +70,8 @@ if True:
 	plt.figure();
 	backtest_res[ "cum_portfolio" ].plot( legend = True );
 
-#	plt.figure();
-#	backtest_res[ "cum_strategy" ].plot( legend = True);
+	plt.figure();
+	backtest_res[ "cum_strategy" ].plot( legend = True);
 
 #	plt.figure();
 #	backtest_res[ 'pred_vs_real_df' ].loc[:,"diff_std"].plot( legend=True );

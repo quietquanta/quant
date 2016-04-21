@@ -273,28 +273,50 @@ class RegressionKalmanFilter( RegressionStrategy ):
 		backtest_res = self.backtest_result;
 
 		port_returns = backtest_res[ "portfolio" ];
+		strategy_returns = backtest_res[ "strategy" ];
 		riskfree_rate = self.riskfree_rate;
 		benchmark_returns = self.benchmark_returns;
 
 		# Average and standard deviation
-		ave_return = port_returns.mean();
-		volatility = port_returns.std();
+		port_ave_return = port_returns.mean();
+		port_volatility = port_returns.std();
 
 		# CAMP
-		alpha, beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns );
+		port_alpha, port_beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
-		sharpe = calcRatioGeneric( port_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
-		sortino = calcRatioGeneric( port_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
-		info_ratio = calcRatioGeneric( port_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
+		port_sharpe = calcRatioGeneric( port_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
+		port_sortino = calcRatioGeneric( port_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
+		port_info_ratio = calcRatioGeneric( port_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
 
-		self.backtest_analysis = {
-			"Average Return" : ave_return,
-			"Volatility" : volatility,
-			"CAMP" : (alpha, beta),
-			"Sharpe" : sharpe,
-			"Sortino" : sortino,
-			"Info_Ratio" : info_ratio
+		self.portfolio_backtest_analysis = {
+			"Average Return" : port_ave_return,
+			"Volatility" : port_volatility,
+			"CAMP" : (port_alpha, port_beta),
+			"Sharpe" : port_sharpe,
+			"Sortino" : port_sortino,
+			"Info_Ratio" : port_info_ratio
 		};
 
-		return self.backtest_analysis;
+		# Strategy performance
+		strategy_ave_return = strategy_returns.mean();
+		strategy_volatility = strategy_returns.std();
+
+		# CAMP
+		strategy_alpha, strategy_beta = calcCAMP( strategy_returns, riskfree_rate, benchmark_returns );
+
+		# Sharpe Ratio, Sortino Ratio, and Info Ratio
+		strategy_sharpe = calcRatioGeneric( strategy_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
+		strategy_sortino = calcRatioGeneric( strategy_returns, riskfree_rate, use_semi_std = True, annualization_factor = np.sqrt(12) );
+		strategy_info_ratio = calcRatioGeneric( strategy_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
+
+		self.strategy_backtest_analysis = {
+			"Average Return" : strategy_ave_return,
+			"Volatility" : strategy_volatility,
+			"CAMP" : (strategy_alpha, strategy_beta),
+			"Sharpe" : strategy_sharpe,
+			"Sortino" : strategy_sortino,
+			"Info_Ratio" : strategy_info_ratio
+		};
+
+		return ( self.portfolio_backtest_analysis, self.strategy_backtest_analysis );
