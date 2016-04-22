@@ -159,10 +159,10 @@ class Regression_OLS( RegressionStrategy ):
 			port_return_seq.append( port_return );
 
 		# Form Series of various returns
-		strategy_return_series = pd.Series( strategy_return_seq, period_seq );
-		strategy_long_return_series = pd.Series( strategy_long_return_seq, period_seq );
-		strategy_short_return_series = pd.Series( strategy_short_return_seq, period_seq );
-		port_return_series = pd.Series( port_return_seq, period_seq );
+		strategy_return_series = pd.Series( strategy_return_seq, period_seq, name = "Strategy" );
+		strategy_long_return_series = pd.Series( strategy_long_return_seq, period_seq, name = "Strategy Long Positions");
+		strategy_short_return_series = pd.Series( strategy_short_return_seq, period_seq, name = "Strategy Short Positions" );
+		port_return_series = pd.Series( port_return_seq, period_seq, name = "Portfolio" );
 
 		asset_weights_df = pd.DataFrame( asset_weights_seq, index=period_seq );
 

@@ -43,8 +43,9 @@ longonly_res = longonly_strat.BackAnalysis();
 """
 lags = range(1,13);
 reg_lags_and_weights = {};
+weight = 1.;
 for lag in lags:
-	reg_lags_and_weights[ lag ] = 1;
+	reg_lags_and_weights[ lag ] = weight**lag;
 
 strat = Regression_OLS( 
 			stock_prices,
