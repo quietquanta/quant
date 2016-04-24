@@ -21,12 +21,13 @@ def calcCAMP(
 	strategy_returns,
 	riskfree_rate,
 	benchmark_returns,
+	annualization_factor = 1,				# If returns and rates are monthly, annualization_factor should be reset to sqrt(12)
 ):
 	""" CAMP model. Return alpha and beta
 	"""
-	strategy_excess_returns = strategy_returns.sub( riskfree_rate.squeeze(), axis=0 ).dropna();
+	strategy_excess_returns = strategy_returns.sub( riskfree_rate.squeeze(), axis=0 ).dropna() * annualization_factor;
 	benchmark_returns = benchmark_returns.loc[ strategy_excess_returns.index, :];		# align benchmark to strategy
-	benchmark_excess_returns = benchmark_returns.sub( riskfree_rate.squeeze(), axis=0 ).dropna();
+	benchmark_excess_returns = benchmark_returns.sub( riskfree_rate.squeeze(), axis=0 ).dropna() * annualization_factor;
 
 	camp_result = _myLinearRegression( strategy_excess_returns, benchmark_excess_returns, include_intercept = True );
 	alpha = camp_result.params.iloc[0];

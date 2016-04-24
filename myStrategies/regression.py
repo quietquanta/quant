@@ -369,11 +369,11 @@ class Regression_OLS( RegressionStrategy ):
 		benchmark_returns = self.benchmark_returns;
 
 		# Average and standard deviation
-		port_ave_return = port_returns.mean();
-		port_volatility = port_returns.std();
+		annualized_port_ave_return = (1 + port_returns.mean() ) ** 12 - 1;			# Monthly return to yearly return
+		annualized_port_volatility = port_returns.std() * np.sqrt(12);				# Monthly STD to annual volatility
 
 		# CAMP
-		port_alpha, port_beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns );
+		port_alpha, port_beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns, annualization_factor = np.sqrt(12) );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
 		port_sharpe = calcRatioGeneric( port_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
@@ -381,8 +381,8 @@ class Regression_OLS( RegressionStrategy ):
 		port_info_ratio = calcRatioGeneric( port_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
 
 		self.portfolio_backtest_analysis = {
-			"Average Return" : port_ave_return,
-			"Volatility" : port_volatility,
+			"Annualized Average Return" : annualized_port_ave_return,
+			"Annualized Volatility" : annualized_port_volatility,
 			"CAMP" : (port_alpha, port_beta),
 			"Sharpe" : port_sharpe,
 			"Sortino" : port_sortino,
@@ -390,11 +390,12 @@ class Regression_OLS( RegressionStrategy ):
 		};
 
 		# Strategy performance
-		strategy_ave_return = strategy_returns.mean();
-		strategy_volatility = strategy_returns.std();
+		annualized_strategy_ave_return = ( 1 + strategy_returns.mean() )**12 - 1;
+		annualized_strategy_volatility = strategy_returns.std() * np.sqrt(12);
 
 		# CAMP
-		strategy_alpha, strategy_beta = calcCAMP( strategy_returns, riskfree_rate, benchmark_returns );
+		strategy_alpha, strategy_beta = calcCAMP( strategy_returns, \
+													riskfree_rate, benchmark_returns, annualization_factor = np.sqrt(12) );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
 		strategy_sharpe = calcRatioGeneric( strategy_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
@@ -402,8 +403,8 @@ class Regression_OLS( RegressionStrategy ):
 		strategy_info_ratio = calcRatioGeneric( strategy_returns, benchmark_returns, annualization_factor = np.sqrt(12) );
 
 		self.strategy_backtest_analysis = {
-			"Average Return" : strategy_ave_return,
-			"Volatility" : strategy_volatility,
+			"Annualized Average Return" : annualized_strategy_ave_return,
+			"Annualized Volatility" : annualized_strategy_volatility,
 			"CAMP" : (strategy_alpha, strategy_beta),
 			"Sharpe" : strategy_sharpe,
 			"Sortino" : strategy_sortino,

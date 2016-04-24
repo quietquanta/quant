@@ -55,7 +55,7 @@ strat = Regression_OLS(
 			sample_lookback = 60,			# number of periods of looking back for training data
 			reg_lags_and_weights = reg_lags_and_weights,
 			num_longs = 10,					# number of stocks to long for each period
-			num_shorts = 0,				# number of stocks to short for each period
+			num_shorts = 10,				# number of stocks to short for each period
 );
 strat_is_long_only = strat.num_shorts <= 0;
 backtest_res = strat.BackTest();
