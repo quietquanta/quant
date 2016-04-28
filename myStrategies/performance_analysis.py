@@ -48,8 +48,8 @@ def calcRatioGeneric(
 
 	if use_semi_std:	# Use semi standard deviation if True
 		below_mean = ( strategy_excess_returns < mean );
-		returns_below_mean = strategy_excess_returns[below_mean];
-		std = np.sqrt( (returns_below_mean**2 ).sum() );
+		excess_returns_below_mean = strategy_excess_returns[below_mean];
+		std = excess_returns_below_mean.std();
 	else:
 		std = strategy_excess_returns.std();
 

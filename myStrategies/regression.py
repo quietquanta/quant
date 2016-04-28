@@ -373,7 +373,7 @@ class Regression_OLS( RegressionStrategy ):
 		annualized_port_volatility = port_returns.std() * np.sqrt(12);				# Monthly STD to annual volatility
 
 		# CAMP
-		port_alpha, port_beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns, annualization_factor = np.sqrt(12) );
+		port_alpha, port_beta = calcCAMP( port_returns, riskfree_rate, benchmark_returns, annualization_factor = 1. );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
 		port_sharpe = calcRatioGeneric( port_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
@@ -383,19 +383,19 @@ class Regression_OLS( RegressionStrategy ):
 		self.portfolio_backtest_analysis = {
 			"Annualized Average Return" : annualized_port_ave_return,
 			"Annualized Volatility" : annualized_port_volatility,
-			"CAMP" : (port_alpha, port_beta),
+			"CAMP" : (port_alpha*12., port_beta),
 			"Sharpe" : port_sharpe,
 			"Sortino" : port_sortino,
 			"Info_Ratio" : port_info_ratio
 		};
 
 		# Strategy performance
-		annualized_strategy_ave_return = ( 1 + strategy_returns.mean() )**12 - 1;
+		annualized_strategy_ave_return = strategy_returns.mean() * 12;
 		annualized_strategy_volatility = strategy_returns.std() * np.sqrt(12);
 
 		# CAMP
 		strategy_alpha, strategy_beta = calcCAMP( strategy_returns, \
-													riskfree_rate, benchmark_returns, annualization_factor = np.sqrt(12) );
+													riskfree_rate, benchmark_returns, annualization_factor = 1. );
 
 		# Sharpe Ratio, Sortino Ratio, and Info Ratio
 		strategy_sharpe = calcRatioGeneric( strategy_returns, riskfree_rate, annualization_factor = np.sqrt(12) );
@@ -405,7 +405,7 @@ class Regression_OLS( RegressionStrategy ):
 		self.strategy_backtest_analysis = {
 			"Annualized Average Return" : annualized_strategy_ave_return,
 			"Annualized Volatility" : annualized_strategy_volatility,
-			"CAMP" : (strategy_alpha, strategy_beta),
+			"CAMP" : (strategy_alpha*12., strategy_beta),
 			"Sharpe" : strategy_sharpe,
 			"Sortino" : strategy_sortino,
 			"Info_Ratio" : strategy_info_ratio
