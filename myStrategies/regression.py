@@ -21,7 +21,8 @@ class Regression_OLS( RegressionStrategy ):
 			num_shorts = 10,				# number of stocks to short for each period
 	):
 
-		self.prices = prices.resample( "BM" ).last();
+		self.prices = prices.resample( "BM").last();
+#		self.prices = prices.resample( "BM", how="last" );
 		self.returns = self.prices.pct_change().iloc[1:];
 
 		self.riskfree_rate = riskfree_rate;
@@ -138,6 +139,7 @@ class Regression_OLS( RegressionStrategy ):
 
 			strategy_is_on = ( i > 0 ) and \
 								( pred_vs_real_diff_std <= diff_std_compared_to and \
+#									pred_vs_real_spearmanr > 0 and \
 									pred_vs_real_spearmanr_pv < 0.05 and \
 									strategy_return > 0 );
 
@@ -221,6 +223,7 @@ class Regression_OLS( RegressionStrategy ):
 			short_pos_hist[ target_period] = prediction_i["short_positions"];
 			predicted_returns_hist[ target_period ] = prediction_i["universe_prediction"];
 			universe_ranking_hist[ target_period ] = prediction_i[ "universe_ranking" ];
+
 
 			reg_info_index.append( target_period );
 			reg_result_data.append( prediction_i[ "reg_result" ] );			# Regression Result for this period
