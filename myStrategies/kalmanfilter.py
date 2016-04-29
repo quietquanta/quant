@@ -178,7 +178,7 @@ class RegressionKalmanFilter( RegressionStrategy ):
 		long_pos_hist = dict();		# long positions from beginning to end
 		short_pos_hist = dict();	# short positions from beginning to end
 
-		for i in range( start, end-1 ):
+		for i in range( start, end ):
 			period = returns.index[i];			# index of date at position i
 			predicted_returns_hist_df_i = np.array( predicted_returns_hist_df.loc[ period, : ] );
 			rank = predicted_returns_hist_df_i.argsort()[::-1];		# rank of y_predict in descending order (i.e from Max to Min)
