@@ -20,7 +20,8 @@ class RegressionKalmanFilter( RegressionStrategy ):
 			num_shorts = 10,				# number of stocks to short for each period
 	):
 
-		self.prices = prices.resample( resample_freq ).last();
+#		self.prices = prices.resample( resample_freq ).last();
+		self.prices = prices.resample( resample_freq, how = 'last' );
 		self.returns = self.prices.pct_change().iloc[1:];
 
 		self.riskfree_rate = riskfree_rate;

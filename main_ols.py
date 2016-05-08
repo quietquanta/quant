@@ -16,11 +16,11 @@ price_csv = 'stock_adj_close_2000_2015.csv';
 stock_prices = read_from_csv( price_csv );
 # (2) Benchmark and risk-free rate
 snp_500 = read_from_csv( "benchmark.csv" );
-snp_500 = snp_500.resample( "BM" ).last();# how="last" );
+snp_500 = snp_500.resample( "BM", how="last" );
 benchmark_returns = snp_500_returns = snp_500.pct_change().iloc[1:];
 
 rf_annualized_rate = read_from_csv( "riskfree.csv", rescale_factor = 0.01 );
-rf_annualized_rate = rf_annualized_rate.resample( "BM" ).last(); # how="last" );
+rf_annualized_rate = rf_annualized_rate.resample( "BM", how="last" );
 def deannualization_func( annual_rate, freq="M" ):
 	if freq is "M":
 		return (1+annual_rate)**(1./12) - 1

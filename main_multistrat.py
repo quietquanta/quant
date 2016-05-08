@@ -19,7 +19,7 @@ monthly_stock_prices = stock_prices.resample( "BM", how="last" );
 monthly_stock_returns = monthly_stock_prices.pct_change().iloc[1:];
 # (2) Benchmark and risk-free rate
 snp_500 = read_from_csv( "benchmark.csv" );
-snp_500 = snp_500.resample( "BM" ).last();
+snp_500 = snp_500.resample( "BM", how="last" );
 snp_500_returns = snp_500.pct_change().iloc[1:];
 benchmark_returns = snp_500_returns;
 

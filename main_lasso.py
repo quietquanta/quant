@@ -13,7 +13,7 @@ from myStrategies.regression_lasso import Regression_Lasso
 # (1) Read daily prices and convert to monthly returns
 price_csv = 'stock_adj_close_2000_2015.csv';
 stock_prices = read_from_csv( price_csv );
-monthly_stock_prices = stock_prices.resample( "BM" ).last();
+monthly_stock_prices = stock_prices.resample( "BM", how="last" );
 monthly_stock_returns = monthly_stock_prices.pct_change().iloc[1:];
 # (2) Benchmark and risk-free rate
 snp_500 = read_from_csv( "benchmark.csv" );

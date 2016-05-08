@@ -21,8 +21,8 @@ class Regression_OLS( RegressionStrategy ):
 			num_shorts = 10,				# number of stocks to short for each period
 	):
 
-		self.prices = prices.resample( "BM").last();
-#		self.prices = prices.resample( "BM", how="last" );
+#		self.prices = prices.resample( "BM").last();
+		self.prices = prices.resample( "BM", how="last" );
 		self.returns = self.prices.pct_change().iloc[1:];
 
 		self.riskfree_rate = riskfree_rate;
